@@ -1,0 +1,1 @@
+# sim-memoria-so

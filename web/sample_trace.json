@@ -1,0 +1,515 @@
+{
+  "steps": [
+    {
+      "step_index": 1,
+      "total_steps": 7,
+      "command": "init 32",
+      "snapshot": {
+        "total_size": 32,
+        "next_fit_ptr": 0,
+        "next_id": 1,
+        "blocks": [
+          {
+            "id": null,
+            "start": 0,
+            "size": 32,
+            "end": 32,
+            "free": true
+          }
+        ],
+        "stats": {
+          "total_size": 32,
+          "used_bytes": 0,
+          "free_bytes": 32,
+          "holes_count": 1,
+          "largest_hole": 32,
+          "effective_usage": 0.0
+        }
+      },
+      "event": {
+        "action": "init",
+        "examined_holes": [],
+        "chosen_hole": null,
+        "affected_blocks": [
+          {
+            "id": null,
+            "start": 0,
+            "size": 32,
+            "end": 32,
+            "free": true
+          }
+        ],
+        "moved_blocks_count": 0,
+        "displaced_bytes": 0,
+        "error": null
+      }
+    },
+    {
+      "step_index": 2,
+      "total_steps": 7,
+      "command": "alloc 8 next",
+      "snapshot": {
+        "total_size": 32,
+        "next_fit_ptr": 8,
+        "next_id": 2,
+        "blocks": [
+          {
+            "id": 1,
+            "start": 0,
+            "size": 8,
+            "end": 8,
+            "free": false
+          },
+          {
+            "id": null,
+            "start": 8,
+            "size": 24,
+            "end": 32,
+            "free": true
+          }
+        ],
+        "stats": {
+          "total_size": 32,
+          "used_bytes": 8,
+          "free_bytes": 24,
+          "holes_count": 1,
+          "largest_hole": 24,
+          "effective_usage": 25.0
+        }
+      },
+      "event": {
+        "action": "alloc",
+        "examined_holes": [
+          {
+            "id": null,
+            "start": 0,
+            "size": 32,
+            "end": 32,
+            "free": true
+          }
+        ],
+        "chosen_hole": {
+          "id": null,
+          "start": 0,
+          "size": 32,
+          "end": 32,
+          "free": true
+        },
+        "affected_blocks": [
+          {
+            "id": 1,
+            "start": 0,
+            "size": 8,
+            "end": 8,
+            "free": false
+          }
+        ],
+        "moved_blocks_count": 0,
+        "displaced_bytes": 0,
+        "error": null
+      }
+    },
+    {
+      "step_index": 3,
+      "total_steps": 7,
+      "command": "alloc 8 next",
+      "snapshot": {
+        "total_size": 32,
+        "next_fit_ptr": 16,
+        "next_id": 3,
+        "blocks": [
+          {
+            "id": 1,
+            "start": 0,
+            "size": 8,
+            "end": 8,
+            "free": false
+          },
+          {
+            "id": 2,
+            "start": 8,
+            "size": 8,
+            "end": 16,
+            "free": false
+          },
+          {
+            "id": null,
+            "start": 16,
+            "size": 16,
+            "end": 32,
+            "free": true
+          }
+        ],
+        "stats": {
+          "total_size": 32,
+          "used_bytes": 16,
+          "free_bytes": 16,
+          "holes_count": 1,
+          "largest_hole": 16,
+          "effective_usage": 50.0
+        }
+      },
+      "event": {
+        "action": "alloc",
+        "examined_holes": [
+          {
+            "id": null,
+            "start": 8,
+            "size": 24,
+            "end": 32,
+            "free": true
+          }
+        ],
+        "chosen_hole": {
+          "id": null,
+          "start": 8,
+          "size": 24,
+          "end": 32,
+          "free": true
+        },
+        "affected_blocks": [
+          {
+            "id": 2,
+            "start": 8,
+            "size": 8,
+            "end": 16,
+            "free": false
+          }
+        ],
+        "moved_blocks_count": 0,
+        "displaced_bytes": 0,
+        "error": null
+      }
+    },
+    {
+      "step_index": 4,
+      "total_steps": 7,
+      "command": "alloc 8 next",
+      "snapshot": {
+        "total_size": 32,
+        "next_fit_ptr": 24,
+        "next_id": 4,
+        "blocks": [
+          {
+            "id": 1,
+            "start": 0,
+            "size": 8,
+            "end": 8,
+            "free": false
+          },
+          {
+            "id": 2,
+            "start": 8,
+            "size": 8,
+            "end": 16,
+            "free": false
+          },
+          {
+            "id": 3,
+            "start": 16,
+            "size": 8,
+            "end": 24,
+            "free": false
+          },
+          {
+            "id": null,
+            "start": 24,
+            "size": 8,
+            "end": 32,
+            "free": true
+          }
+        ],
+        "stats": {
+          "total_size": 32,
+          "used_bytes": 24,
+          "free_bytes": 8,
+          "holes_count": 1,
+          "largest_hole": 8,
+          "effective_usage": 75.0
+        }
+      },
+      "event": {
+        "action": "alloc",
+        "examined_holes": [
+          {
+            "id": null,
+            "start": 16,
+            "size": 16,
+            "end": 32,
+            "free": true
+          }
+        ],
+        "chosen_hole": {
+          "id": null,
+          "start": 16,
+          "size": 16,
+          "end": 32,
+          "free": true
+        },
+        "affected_blocks": [
+          {
+            "id": 3,
+            "start": 16,
+            "size": 8,
+            "end": 24,
+            "free": false
+          }
+        ],
+        "moved_blocks_count": 0,
+        "displaced_bytes": 0,
+        "error": null
+      }
+    },
+    {
+      "step_index": 5,
+      "total_steps": 7,
+      "command": "freeid 1",
+      "snapshot": {
+        "total_size": 32,
+        "next_fit_ptr": 24,
+        "next_id": 4,
+        "blocks": [
+          {
+            "id": null,
+            "start": 0,
+            "size": 8,
+            "end": 8,
+            "free": true
+          },
+          {
+            "id": 2,
+            "start": 8,
+            "size": 8,
+            "end": 16,
+            "free": false
+          },
+          {
+            "id": 3,
+            "start": 16,
+            "size": 8,
+            "end": 24,
+            "free": false
+          },
+          {
+            "id": null,
+            "start": 24,
+            "size": 8,
+            "end": 32,
+            "free": true
+          }
+        ],
+        "stats": {
+          "total_size": 32,
+          "used_bytes": 16,
+          "free_bytes": 16,
+          "holes_count": 2,
+          "largest_hole": 8,
+          "effective_usage": 50.0
+        }
+      },
+      "event": {
+        "action": "freeid",
+        "examined_holes": [],
+        "chosen_hole": null,
+        "affected_blocks": [
+          {
+            "id": 1,
+            "start": 0,
+            "size": 8,
+            "end": 8,
+            "free": false
+          }
+        ],
+        "moved_blocks_count": 0,
+        "displaced_bytes": 0,
+        "error": null
+      }
+    },
+    {
+      "step_index": 6,
+      "total_steps": 7,
+      "command": "alloc 4 next",
+      "snapshot": {
+        "total_size": 32,
+        "next_fit_ptr": 28,
+        "next_id": 5,
+        "blocks": [
+          {
+            "id": null,
+            "start": 0,
+            "size": 8,
+            "end": 8,
+            "free": true
+          },
+          {
+            "id": 2,
+            "start": 8,
+            "size": 8,
+            "end": 16,
+            "free": false
+          },
+          {
+            "id": 3,
+            "start": 16,
+            "size": 8,
+            "end": 24,
+            "free": false
+          },
+          {
+            "id": 4,
+            "start": 24,
+            "size": 4,
+            "end": 28,
+            "free": false
+          },
+          {
+            "id": null,
+            "start": 28,
+            "size": 4,
+            "end": 32,
+            "free": true
+          }
+        ],
+        "stats": {
+          "total_size": 32,
+          "used_bytes": 20,
+          "free_bytes": 12,
+          "holes_count": 2,
+          "largest_hole": 8,
+          "effective_usage": 62.5
+        }
+      },
+      "event": {
+        "action": "alloc",
+        "examined_holes": [
+          {
+            "id": null,
+            "start": 24,
+            "size": 8,
+            "end": 32,
+            "free": true
+          }
+        ],
+        "chosen_hole": {
+          "id": null,
+          "start": 24,
+          "size": 8,
+          "end": 32,
+          "free": true
+        },
+        "affected_blocks": [
+          {
+            "id": 4,
+            "start": 24,
+            "size": 4,
+            "end": 28,
+            "free": false
+          }
+        ],
+        "moved_blocks_count": 0,
+        "displaced_bytes": 0,
+        "error": null
+      }
+    },
+    {
+      "step_index": 7,
+      "total_steps": 7,
+      "command": "alloc 6 next",
+      "snapshot": {
+        "total_size": 32,
+        "next_fit_ptr": 6,
+        "next_id": 6,
+        "blocks": [
+          {
+            "id": 5,
+            "start": 0,
+            "size": 6,
+            "end": 6,
+            "free": false
+          },
+          {
+            "id": null,
+            "start": 6,
+            "size": 2,
+            "end": 8,
+            "free": true
+          },
+          {
+            "id": 2,
+            "start": 8,
+            "size": 8,
+            "end": 16,
+            "free": false
+          },
+          {
+            "id": 3,
+            "start": 16,
+            "size": 8,
+            "end": 24,
+            "free": false
+          },
+          {
+            "id": 4,
+            "start": 24,
+            "size": 4,
+            "end": 28,
+            "free": false
+          },
+          {
+            "id": null,
+            "start": 28,
+            "size": 4,
+            "end": 32,
+            "free": true
+          }
+        ],
+        "stats": {
+          "total_size": 32,
+          "used_bytes": 26,
+          "free_bytes": 6,
+          "holes_count": 2,
+          "largest_hole": 4,
+          "effective_usage": 81.25
+        }
+      },
+      "event": {
+        "action": "alloc",
+        "examined_holes": [
+          {
+            "id": null,
+            "start": 28,
+            "size": 4,
+            "end": 32,
+            "free": true
+          },
+          {
+            "id": null,
+            "start": 0,
+            "size": 8,
+            "end": 8,
+            "free": true
+          }
+        ],
+        "chosen_hole": {
+          "id": null,
+          "start": 0,
+          "size": 8,
+          "end": 8,
+          "free": true
+        },
+        "affected_blocks": [
+          {
+            "id": 5,
+            "start": 0,
+            "size": 6,
+            "end": 6,
+            "free": false
+          }
+        ],
+        "moved_blocks_count": 0,
+        "displaced_bytes": 0,
+        "error": null
+      }
+    }
+  ]
+}

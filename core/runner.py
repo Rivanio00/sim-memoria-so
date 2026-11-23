@@ -30,11 +30,13 @@ def build_simulation_trace(script_text: str) -> Dict[str, Any]:
     manager = MemoryManager()
     valid_commands: List[str] = []
 
-    for line in script_text.splitlines():
-        clean = line.strip()
-        if not clean or clean.startswith("#"):
+    for line in script_text.lstrip("\ufeff").splitlines():
+        clean = line.split("#", 1)[0].strip()
+        if not clean:
             continue
         op = clean.split()[0].lower()
+        if op == "eof":
+            break
         if op in ("show", "stats"):
             continue
         valid_commands.append(clean)

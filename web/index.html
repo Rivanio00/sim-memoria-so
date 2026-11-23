@@ -2,11 +2,217 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Simulador de Gerência de Memória</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulador Visual de Gerência de Memória — SO</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <h1>Simulador de Gerência de Memória</h1>
+  <header class="topbar">
+    <div class="topbar-title">
+      <h1>Simulador de Gerência de Memória</h1>
+      <p class="subtitle">Visualização passo a passo · First Fit · Best Fit · Worst Fit · Next Fit · Coalescência · Defrag</p>
+    </div>
+    <div class="topbar-actions">
+      <label class="btn btn-primary file-picker-label" for="scriptFileInput">
+        <span>Carregar Roteiro (.cmd / .txt)</span>
+        <input id="scriptFileInput" type="file" accept=".cmd,.txt" hidden />
+      </label>
+      <button id="btnLoadSample" class="btn btn-secondary" type="button" title="Carrega o roteiro demonstrativo de Next Fit">
+        Exemplo Next Fit
+      </button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Barra de Controles de Execução -->
+    <section class="panel controls-panel" aria-label="Controles de execução">
+      <div class="controls-group">
+        <button id="btnPrev" class="btn btn-control" type="button" disabled title="Atalho: Seta Esquerda">
+          ← Voltar
+        </button>
+        <button id="btnNext" class="btn btn-control btn-accent" type="button" disabled title="Atalho: Seta Direita">
+          Avançar →
+        </button>
+        <button id="btnPlay" class="btn btn-control btn-play" type="button" disabled title="Atalho: Espaço">
+          ▶ Reproduzir
+        </button>
+        <button id="btnPause" class="btn btn-control btn-pause" type="button" disabled title="Atalho: Espaço">
+          ⏸ Pausar
+        </button>
+        <button id="btnReset" class="btn btn-control" type="button" disabled title="Atalho: R">
+          ↺ Reiniciar
+        </button>
+      </div>
+
+      <div class="interval-control">
+        <label for="intervalInput">Intervalo (s):</label>
+        <input id="intervalInput" type="number" min="0.1" max="30" step="0.1" value="0.8" />
+        <span id="playbackBadge" class="badge badge-idle">Aguardando roteiro</span>
+      </div>
+    </section>
+
+    <!-- Banner de Erro (carregamento ou erro de execução do passo) -->
+    <section id="errorBanner" class="error-banner hidden" role="alert">
+      <strong class="error-title">Atenção:</strong>
+      <span id="errorMessage"></span>
+    </section>
+
+    <!-- Painel de Status do Passo Atual -->
+    <section class="panel status-panel" aria-label="Status do passo atual">
+      <div class="status-main">
+        <div class="status-step">
+          <span id="stepCounter" class="step-counter">Passo 0 de 0</span>
+          <span id="scriptName" class="script-name">Nenhum roteiro carregado</span>
+        </div>
+        <div class="status-command">
+          <span id="actionBadge" class="action-badge action-idle">INÍCIO</span>
+          <code id="currentCommand" class="command-code">Aguardando carregamento de roteiro (.cmd / .txt)</code>
+        </div>
+      </div>
+      <div class="progress-track" aria-hidden="true">
+        <div id="progressFill" class="progress-fill" style="width: 0%;"></div>
+      </div>
+    </section>
+
+    <!-- Mapa Visual da Memória -->
+    <section class="panel memory-panel" aria-label="Mapa visual da memória">
+      <div class="panel-header">
+        <div>
+          <h2>Mapa Visual da Memória</h2>
+          <p class="panel-hint">Blocos proporcionais ao tamanho total · passe o mouse sobre um segmento para detalhes</p>
+        </div>
+        <div class="memory-meta">
+          <span class="meta-pill">Total: <strong id="metaTotal">—</strong></span>
+          <span class="meta-pill meta-ptr">Ponteiro Next Fit: <strong id="metaNextFitPtr">—</strong></span>
+          <span class="meta-pill">Próximo ID: <strong id="metaNextId">—</strong></span>
+        </div>
+      </div>
+
+      <!-- Estado vazio (antes do passo 1 ou sem roteiro) -->
+      <div id="memoryEmptyState" class="memory-empty">
+        <p id="memoryEmptyText">Carregue um arquivo <code>.cmd</code> ou <code>.txt</code> e clique em <strong>Avançar</strong> ou <strong>Reproduzir</strong> para iniciar a simulação.</p>
+      </div>
+
+      <!-- Área visual da barra de memória -->
+      <div id="memoryStage" class="memory-stage hidden">
+        <!-- Trilha do Ponteiro Next Fit -->
+        <div class="ptr-lane" aria-label="Indicador do ponteiro Next Fit">
+          <div id="nextFitMarker" class="next-fit-marker" style="left: 0%;">
+            <span id="nextFitLabel" class="next-fit-label">Next Fit @0</span>
+            <span class="next-fit-arrow" aria-hidden="true">▼</span>
+          </div>
+        </div>
+
+        <!-- Barra Principal da Memória -->
+        <div class="memory-bar-wrapper">
+          <div id="memoryBar" class="memory-bar" role="img" aria-label="Segmentos de memória"></div>
+          <div id="nextFitLine" class="next-fit-line" style="left: 0%;" aria-hidden="true"></div>
+        </div>
+
+        <!-- Régua de Endereços -->
+        <div id="addressRuler" class="address-ruler" aria-label="Escala de endereços"></div>
+
+        <!-- Faixa de Destaque de Busca / Eventos (buracos examinados, escolhido, liberado/coalescência, defrag) -->
+        <div id="overlaySection" class="overlay-section hidden">
+          <div class="overlay-header">
+            <span id="overlayTitle" class="overlay-title">Trajeto de Busca / Ação no Passo</span>
+            <span id="overlaySubtitle" class="overlay-subtitle"></span>
+          </div>
+          <div id="overlayTrack" class="overlay-track"></div>
+        </div>
+
+        <!-- Legenda -->
+        <div class="legend">
+          <span class="legend-item"><span class="swatch swatch-allocated"></span> Bloco alocado (cor fixa por ID)</span>
+          <span class="legend-item"><span class="swatch swatch-free"></span> Buraco livre</span>
+          <span class="legend-item"><span class="swatch swatch-examined"></span> Buraco examinado</span>
+          <span class="legend-item"><span class="swatch swatch-chosen"></span> Buraco escolhido</span>
+          <span class="legend-item"><span class="swatch swatch-affected"></span> Bloco afetado / movido</span>
+          <span class="legend-item"><span class="swatch swatch-ptr"></span> Ponteiro Next Fit</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Estatísticas em Tempo Real -->
+    <section class="stats-grid" aria-label="Estatísticas de memória">
+      <div class="stat-card">
+        <span class="stat-label">Ocupado</span>
+        <strong id="statUsed" class="stat-value">—</strong>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Livre</span>
+        <strong id="statFree" class="stat-value">—</strong>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Buracos</span>
+        <strong id="statHoles" class="stat-value">—</strong>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Maior Buraco Livre</span>
+        <strong id="statLargestHole" class="stat-value">—</strong>
+      </div>
+      <div class="stat-card stat-card-usage">
+        <div class="stat-usage-top">
+          <span class="stat-label">Uso Efetivo</span>
+          <strong id="statUsage" class="stat-value">—</strong>
+        </div>
+        <div class="usage-meter">
+          <div id="statUsageBar" class="usage-meter-fill" style="width: 0%;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Grade Inferior: Detalhes do Passo + Tabela de Segmentos + Roteiro -->
+    <section class="bottom-grid">
+      <!-- Detalhes da Ação & Segmentos Atuais -->
+      <div class="left-column">
+        <section class="panel detail-panel" aria-label="Detalhes da ação do passo">
+          <h2>Detalhes do Evento</h2>
+          <div id="eventDetails" class="event-details">
+            <p class="muted">Nenhum passo executado ainda.</p>
+          </div>
+        </section>
+
+        <section class="panel table-panel" aria-label="Tabela de blocos e buracos">
+          <h2>Segmentos na Memória</h2>
+          <div class="table-wrapper">
+            <table class="segments-table">
+              <thead>
+                <tr>
+                  <th>Tipo</th>
+                  <th>ID</th>
+                  <th>Início (@)</th>
+                  <th>Fim</th>
+                  <th>Tamanho</th>
+                </tr>
+              </thead>
+              <tbody id="segmentsTableBody">
+                <tr>
+                  <td colspan="5" class="muted center-cell">Sem dados para exibir.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- Lista de Passos do Roteiro -->
+      <section class="panel timeline-panel" aria-label="Passos do roteiro">
+        <div class="panel-header compact">
+          <h2>Roteiro Carregado</h2>
+          <span id="timelineCount" class="muted">0 passos</span>
+        </div>
+        <ol id="stepsTimeline" class="steps-timeline">
+          <li class="timeline-empty muted">Carregue um arquivo <code>.cmd</code> ou <code>.txt</code> para ver os comandos válidos.</li>
+        </ol>
+      </section>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>Atalhos: <kbd>←</kbd> Voltar · <kbd>→</kbd> Avançar · <kbd>Espaço</kbd> Reproduzir/Pausar · <kbd>R</kbd> Reiniciar</span>
+  </footer>
+
   <script src="app.js"></script>
 </body>
 </html>

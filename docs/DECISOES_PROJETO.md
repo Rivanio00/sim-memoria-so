@@ -61,4 +61,10 @@ Ao liberar um bloco no índice $i$, seu estado muda para `free = True` (`id = No
 ---
 
 ## 5. Decisões da Interface Visual (`web/`)
-*(A ser preenchido pelo responsável pelo frontend Web: estratégia de renderização proporcional do mapa de memória, paleta de cores determinística por `id`, exibição da régua de endereços e controle de temporização da reprodução automática).*
+
+A interface visual foi implementada em **HTML5, CSS3 e JavaScript puro** (sem dependências externas ou *bundlers*), consumindo exclusivamente o contrato HTTP `POST /api/simulate` fornecido por `server.py` e `core/runner.py`:
+
+* **Renderização Proporcional da Memória:** Cada elemento da lista `snapshot.blocks` é renderizado com largura percentual exata `size / total_size * 100%`, acompanhado de uma régua dinâmica de endereços (`@start`, `@end`) e tabela complementar de segmentos para legibilidade mesmo em blocos muito estreitos.
+* **Paleta de Cores Determinística por `id`:** Cada bloco alocado recebe uma cor fixa derivada de `(id - 1) % N` sobre uma paleta de alto contraste, garantindo estabilidade visual do mesmo bloco ao longo de todos os passos (inclusive após compactação `defrag`). Buracos livres usam hachura diagonal neutra.
+* **Ponteiro do Next Fit e Sobreposição de Eventos:** O ponteiro `next_fit_ptr` é desenhado sobre a barra com marcador proporcional e linha vertical contínua. Uma faixa dedicada abaixo da régua exibe a ordem dos `examined_holes` (evidenciando buscas e *wrap-around*), o `chosen_hole`, coalescência de buracos adjacentes (`coalesced: true`) e deslocamentos do `defrag` (`old_start -> new_start`, `moved_blocks_count`, `displaced_bytes`).
+* **Navegação e Reprodução Automática:** Como o `core/` entrega *snapshots* imutáveis para cada passo, `Avançar`, `Voltar` e `Reiniciar` (estado `Passo 0 de N`) restauram exatamente o estado da memória sem lógica inversa no frontend. A reprodução automática usa `setInterval` com intervalo configurável em segundos decimais (ex.: `0.5`), interrompe ao fim do roteiro e é pausada imediatamente em qualquer interação manual (`Avançar`, `Voltar`, `Reiniciar` ou clique na linha do tempo).

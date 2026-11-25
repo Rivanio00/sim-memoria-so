@@ -22,7 +22,11 @@ sim-memoria-so/
 ├── docs/                       # Documentação técnica e contratos de integração da equipe
 │   ├── CONTRATOS.md
 │   └── DECISOES_PROJETO.md
-├── scripts/                    # Roteiros de teste (.cmd) para CLI e simulação visual
+├── scripts/                    # Roteiros de teste (.cmd) e script de criação da .venv
+│   ├── exemplo_defrag.cmd
+│   ├── exemplo_geral.cmd
+│   ├── exemplo_nextfit.cmd
+│   └── setup_venv.sh
 ├── tests/                      # Testes unitários automatizados do núcleo e da CLI
 │   ├── __init__.py
 │   ├── test_cli.py
@@ -57,6 +61,14 @@ source .venv/bin/activate        # Linux/macOS
 ```
 
 Com a `.venv` ativada, use `python` normalmente. Se preferir não ativá-la, substitua `python` por `.venv/bin/python` nos comandos abaixo.
+
+Para automatizar a criação e a validação do ambiente, use:
+
+```bash
+./scripts/setup_venv.sh
+```
+
+O script cria ou reutiliza a `.venv`, valida a sintaxe com `compileall` e executa a suíte de testes. O Python do host é usado apenas para criar a própria `.venv`; os comandos do projeto rodam com `.venv/bin/python`.
 
 ---
 

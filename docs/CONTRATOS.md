@@ -41,10 +41,11 @@ Ao concluir `defrag`, o método deve retornar um `StepResult` com:
 * `event.action`: `"defrag"`.
 * `event.moved_blocks_count`: quantidade de blocos alocados cujo `start` foi alterado.
 * `event.displaced_bytes`: soma dos tamanhos (`size`) apenas dos blocos que mudaram de endereço inicial.
-* `event.affected_blocks`: lista de dicionários descrevendo cada bloco movido no formato:
+* `event.affected_blocks`: lista de dicionários descrevendo **apenas** os blocos cujo endereço inicial mudou, no formato:
   ```python
-  {"id": block.id, "old_start": antigo_end, "new_start": novo_end, "size": block.size}
+  {"id": block.id, "old_start": endereco_inicial_antigo, "new_start": endereco_inicial_novo, "size": block.size}
   ```
+* Blocos que já estavam na posição final não entram em `affected_blocks` nem em `displaced_bytes`.
 
 ---
 
@@ -118,3 +119,16 @@ Ao concluir `defrag`, o método deve retornar um `StepResult` com:
   * `event.chosen_hole`: buraco selecionado para receber o bloco (`null` se houve falha).
 * **Destaque de Mudanças:** `event.affected_blocks` indica o bloco recém-alocado, o bloco liberado/fundido (flag `"coalesced": true`) ou os blocos deslocados pelo `defrag`.
 * **Erros:** Quando `event.error` não for `null`, exibir a mensagem em destaque na tela sem interromper a navegação pelos passos.
+
+---
+
+## 4. Contrato da CLI (`cli/main.py`)
+
+A CLI usa `execute_command_line` para os comandos mutadores e trata localmente `show`, `stats`, `help` e `exit`/`quit`/`sair`. Ela não reimplementa regras de domínio: toda alocação, coalescência e compactação continuam vindo do `core/`.
+
+* **Comandos mutadores:** `init`, `alloc`, `freeid`, `freeaddr` e `defrag` produzem um `StepResult`; a CLI imprime uma confirmação curta ou a mensagem de `event.error`.
+* **`show`:** mapa de duas linhas, lista de blocos ativos e bloco de estatísticas (mesmo formato do exemplo do enunciado).
+* **`stats`:** apenas o bloco de estatísticas.
+* **`defrag`:** resumo de blocos movidos/bytes deslocados, lista de mudanças (`@antigo -> @novo`) e, em seguida, o mapa e as estatísticas resultantes.
+* **Roteiros `.cmd`:** linhas vazias e comentários `#` são ignorados; `EOF` encerra a leitura; `show` e `stats` são executados na CLI (a simulação visual os ignora).
+* **Erros:** mensagens em português; erros de sintaxe/argumentos não interrompem o modo interativo nem o restante do roteiro.

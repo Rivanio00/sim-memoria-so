@@ -10,9 +10,10 @@ A arquitetura separa o núcleo de simulação (em **Python**, sem dependências 
 
 ```text
 sim-memoria-so/
-├── cli/                        # Interface de linha de comando (modo interativo, show e stats)
+├── cli/                        # Interface de linha de comando (modo interativo e roteiros)
 │   ├── __init__.py
-│   └── main.py
+│   ├── __main__.py             # Permite executar com "python -m cli"
+│   └── main.py                 # Prompt, formatação de show/stats e resumo do defrag
 ├── core/                       # Núcleo da simulação (alocação, coalescência, defrag e snapshots)
 │   ├── __init__.py
 │   ├── manager.py
@@ -22,9 +23,11 @@ sim-memoria-so/
 │   ├── CONTRATOS.md
 │   └── DECISOES_PROJETO.md
 ├── scripts/                    # Roteiros de teste (.cmd) para CLI e simulação visual
-├── tests/                      # Testes unitários automatizados do núcleo
+├── tests/                      # Testes unitários automatizados do núcleo e da CLI
 │   ├── __init__.py
-│   └── test_core.py
+│   ├── test_cli.py
+│   ├── test_core.py
+│   └── test_defrag.py
 ├── web/                        # Interface visual passo a passo (HTML, CSS e JavaScript)
 │   ├── app.js
 │   ├── index.html
@@ -43,34 +46,99 @@ sim-memoria-so/
 
 ---
 
+## Ambiente Virtual (`.venv`)
+
+Todos os comandos Python do projeto devem ser executados dentro da `.venv` criada na raiz do repositório:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate        # Linux/macOS
+# .venv\Scripts\Activate.ps1     # Windows PowerShell
+```
+
+Com a `.venv` ativada, use `python` normalmente. Se preferir não ativá-la, substitua `python` por `.venv/bin/python` nos comandos abaixo.
+
+---
+
 ## Como Executar
 
-### 1. Rodar os Testes Automatizados do Núcleo
-Na raiz do projeto, execute:
+### 1. Rodar os Testes Automatizados
+
+Na raiz do projeto, com a `.venv` ativada:
+
 ```bash
-python3 -m unittest discover -s tests -v
+python -m unittest discover -s tests -v
 ```
+
+Os testes cobrem os exemplos do enunciado (Next Fit e as três opções de `defrag`), as regras de alocação/liberação e a saída da CLI.
 
 ### 2. Executar a Interface de Linha de Comando (CLI)
 
 **Modo interativo:**
+
 ```bash
-python3 -m cli.main
+python -m cli.main
+# ou, equivalentemente:
+python -m cli
 ```
 
+O prompt é `> `. Digite `help` para ver os comandos e `exit` (ou `quit`/`sair`) para encerrar.
+
 **Executando um roteiro `.cmd` diretamente na CLI:**
+
 ```bash
-python3 -m cli.main scripts/exemplo_nextfit.cmd
+python -m cli.main scripts/exemplo_nextfit.cmd
+```
+
+Por padrão, a CLI ecoa cada comando do roteiro (`> comando`) antes da saída. Use `--no-echo` para suprimir o eco:
+
+```bash
+python -m cli.main --no-echo scripts/exemplo_geral.cmd
+```
+
+O roteiro [`scripts/exemplo_defrag.cmd`](scripts/exemplo_defrag.cmd) reinicia a memória e compara as três opções de compactação (`init`, `end` e `opt`) a partir do mesmo estado:
+
+```bash
+python -m cli.main scripts/exemplo_defrag.cmd
+```
+
+Exemplo de sessão com compactação:
+
+```text
+> init 64
+> alloc 10 first
+> alloc 8 first
+> alloc 6 first
+> freeid 2
+Liberado [id=2] @10 +8B.
+> defrag end
+Defrag END: 1 bloco movido, 6 bytes deslocados.
+Blocos movidos:
+  [id=3] @18 -> @10 (6B)
+
+Mapa de Memória (64 bytes)
+------------------------------------------------------------------
+[################................................................]
+[1111111111333333................................................]
+------------------------------------------------------------------
+
+Blocos ativos: [id=1] @0 +10B (usado=10B) | [id=3] @10 +6B (usado=6B)
+== Estatísticas ==
+Tamanho total: 64 bytes
+Ocupado: 16 bytes | Livre: 48 bytes
+Buracos (fragmentação externa): 1
+Maior buraco livre: 48 bytes
+Uso efetivo: 25.00%
 ```
 
 ### 3. Executar a Simulação Visual Passo a Passo
 
-1. Inicie o servidor local na raiz do repositório:
+1. Inicie o servidor local na raiz do repositório, com a `.venv` ativada:
    ```bash
-   python3 server.py
+   python server.py
    ```
 2. Abra o navegador em `http://127.0.0.1:8000`.
-3. Clique em **Carregar Roteiro (.cmd)** e selecione qualquer arquivo da pasta `scripts/` (ex.: `scripts/exemplo_nextfit.cmd`).
+3. Clique em **Carregar Roteiro (.cmd)** e selecione qualquer arquivo da pasta `scripts/` (ex.: `scripts/exemplo_nextfit.cmd` ou `scripts/exemplo_defrag.cmd`).
 4. Utilize os controles **Avançar**, **Voltar**, **Reproduzir / Pausar** (com intervalo configurável em segundos, ex.: `0.5`) e **Reiniciar**.
 
 ---
@@ -83,9 +151,15 @@ python3 -m cli.main scripts/exemplo_nextfit.cmd
 | `alloc <tam> <alg>` | Aloca `<tam>` bytes usando `first`, `best`, `worst` ou `next`. IDs são sequenciais e nunca reaproveitados. |
 | `freeid <id>` | Libera o bloco identificado por `<id>` e realiza coalescência com buracos vizinhos. |
 | `freeaddr <end>` | Libera o bloco que inicia no endereço `<end>` e realiza coalescência com buracos vizinhos. |
-| `show` | Exibe o mapa textual de duas linhas (`#/.` e IDs) e a lista de blocos ativos (ignorado na simulação visual). |
-| `stats` | Exibe tamanho total, ocupado, livre, número de buracos, maior buraco livre e uso efetivo (ignorado na simulação visual). |
-| `defrag <modo>` | Compacta a memória mantendo ordem relativa e IDs (`init`, `end` ou `opt`) e reseta o ponteiro do Next Fit para `0`. |
+| `show` | Exibe o mapa textual de duas linhas (`#/.` e IDs), a lista de blocos ativos e as estatísticas. |
+| `stats` | Exibe apenas as estatísticas (tamanho total, ocupado, livre, buracos, maior buraco e uso efetivo). |
+| `defrag <modo>` | Compacta a memória mantendo ordem relativa e IDs (`init`, `end` ou `opt`), mostra blocos movidos/bytes deslocados e o mapa resultante, e reseta o ponteiro do Next Fit para `0`. |
+| `help` | (Somente modo interativo) Lista os comandos disponíveis. |
+| `exit` / `quit` / `sair` | (Somente modo interativo) Encerra a CLI. |
+
+Em roteiros `.cmd`, linhas em branco e trechos iniciados por `#` são ignorados, e a linha `EOF` encerra a leitura. `show` e `stats` são executados normalmente na CLI; na simulação visual eles são ignorados, pois a tela já exibe o mapa e as estatísticas.
+
+> **Observação sobre o mapa:** a linha de identificadores usa exatamente um caractere por byte. Por isso, IDs com mais de um dígito aparecem representados pelo último dígito (ex.: `id=12` vira `2`); a lista `Blocos ativos` sempre mostra o ID completo.
 
 ---
 

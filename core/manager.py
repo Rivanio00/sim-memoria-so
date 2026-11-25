@@ -212,11 +212,134 @@ class MemoryManager:
 
     def defrag(self, option: DefragOption) -> StepResult:
         """
-        TODO
-        - INIT: blocos livres no início, alocados colados no fim.
-        - END: blocos alocados colados no início, livres no fim.
-        - OPT: k primeiros blocos no início e restantes no fim, minimizando bytes movidos
-               (empate -> maior k).
-        - Zerar self.next_fit_ptr = 0 e preencher moved_blocks_count / displaced_bytes.
+        Compacta a memória mantendo a ordem relativa e os ids dos blocos.
+
+        INIT: blocos alocados colados no fim, buraco no início.
+        END:  blocos alocados colados no início, buraco no fim.
+        OPT:  escolhe o corte k que minimiza os bytes deslocados, deixando os
+              k primeiros blocos no início e os demais no fim. Em empate,
+              vence o maior k.
+
+        O ponteiro do Next Fit volta para 0 em qualquer opção. Um bloco só é
+        contabilizado como movido quando seu endereço inicial realmente muda.
         """
-        raise NotImplementedError("Método defrag será implementado na etapa da CLI/Defrag.")
+        self._ensure_initialized()
+        if not isinstance(option, DefragOption):
+            try:
+                option = DefragOption(option)
+            except ValueError as exc:
+                raise ValueError(
+                    f"Opção de defrag inválida: '{option}'. Use init, end ou opt."
+                ) from exc
+
+        allocated = [b for b in self.blocks if not b.free]
+        old_starts = {b.id: b.start for b in allocated}
+
+        if option is DefragOption.INIT:
+            new_blocks = self._layout_init(allocated, self.total_size)
+        elif option is DefragOption.END:
+            new_blocks = self._layout_end(allocated, self.total_size)
+        else:
+            new_blocks = self._layout_opt(allocated, self.total_size)
+
+        self.blocks = new_blocks
+        self.next_fit_ptr = 0
+
+        moved = []
+        for block in new_blocks:
+            if block.free:
+                continue
+            old_start = old_starts[block.id]
+            if old_start != block.start:
+                moved.append({
+                    "id": block.id,
+                    "old_start": old_start,
+                    "new_start": block.start,
+                    "size": block.size,
+                })
+
+        event = StepEvent(
+            action="defrag",
+            affected_blocks=moved,
+            moved_blocks_count=len(moved),
+            displaced_bytes=sum(item["size"] for item in moved),
+        )
+        return StepResult(
+            command=f"defrag {option.value}",
+            snapshot=self.snapshot(),
+            event=event,
+        )
+
+    @staticmethod
+    def _layout_end(allocated: List[Block], total: int) -> List[Block]:
+        """Blocos colados no início e um único buraco no fim."""
+        blocks: List[Block] = []
+        cursor = 0
+        for block in allocated:
+            blocks.append(Block(id=block.id, start=cursor, size=block.size, free=False))
+            cursor += block.size
+        if cursor < total:
+            blocks.append(Block(id=None, start=cursor, size=total - cursor, free=True))
+        return blocks
+
+    @staticmethod
+    def _layout_init(allocated: List[Block], total: int) -> List[Block]:
+        """Blocos colados no fim e um único buraco no início."""
+        placed: List[Block] = []
+        cursor = total
+        for block in reversed(allocated):
+            cursor -= block.size
+            placed.append(Block(id=block.id, start=cursor, size=block.size, free=False))
+        placed.reverse()
+
+        blocks: List[Block] = []
+        if cursor > 0:
+            blocks.append(Block(id=None, start=0, size=cursor, free=True))
+        blocks.extend(placed)
+        return blocks
+
+    @staticmethod
+    def _layout_opt(allocated: List[Block], total: int) -> List[Block]:
+        """
+        Para cada corte k, calcula os bytes deslocados supondo:
+          * blocos 0..k-1 colados no início: start = prefix[i];
+          * blocos k..n-1 colados no fim: start = total - (used - prefix[i]).
+
+        O buraco único fica entre os dois grupos. Escolhe o menor custo e,
+        em caso de empate, o maior k (a iteração é crescente e usa <=).
+        """
+        n = len(allocated)
+        prefix = [0] * (n + 1)
+        for i, block in enumerate(allocated):
+            prefix[i + 1] = prefix[i] + block.size
+        used = prefix[n]
+        hole_size = total - used
+
+        best_k = 0
+        best_cost: Optional[int] = None
+        for k in range(n + 1):
+            cost = 0
+            for i in range(k):
+                if prefix[i] != allocated[i].start:
+                    cost += allocated[i].size
+            for i in range(k, n):
+                new_start = total - (used - prefix[i])
+                if new_start != allocated[i].start:
+                    cost += allocated[i].size
+            if best_cost is None or cost <= best_cost:
+                best_cost = cost
+                best_k = k
+
+        blocks: List[Block] = []
+        for i in range(best_k):
+            blocks.append(
+                Block(id=allocated[i].id, start=prefix[i], size=allocated[i].size, free=False)
+            )
+        if hole_size > 0:
+            blocks.append(Block(id=None, start=prefix[best_k], size=hole_size, free=True))
+        for i in range(best_k, n):
+            new_start = total - (used - prefix[i])
+            blocks.append(
+                Block(id=allocated[i].id, start=new_start, size=allocated[i].size, free=False)
+            )
+        return blocks
